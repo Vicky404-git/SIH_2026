@@ -1,25 +1,3 @@
-"""
-CLANKA RAG ENGINE v3.0 (sqlite-vec)
-====================================
-Pure logic module - no console/CLI printing here. Callers (CLI layer,
-DaemonV, etc.) decide how to surface progress/errors.
-
-Replaces sqlite-vss (unmaintained) with sqlite-vec (actively maintained).
-
-Two kinds of memory live in the same `chunks` table, distinguished by
-`source_type`, so they can be filtered independently and never get
-wiped by each other's rebuild:
-
-    'code'  - project/codebase chunks, rebuilt via build_index()
-    'doc'   - manuals/SOPs/reference docs, same rebuild path as 'code'
-    'chat'  - conversational memory, appended to over time, NEVER
-              dropped wholesale by build_index()
-
-`score` and `last_accessed` exist so a future consolidation job can
-rank 'chat' rows by importance (recency + retrieval frequency) without
-schema changes.
-"""
-
 import os
 import struct
 import sqlite3
@@ -35,8 +13,8 @@ except ImportError:  # keep the module importable even without ollama installed
 
 EMBED_MODEL = "nomic-embed-text"
 EMBED_DIM = 768
-DB_PATH = "memory/clanka.db"
-IGNORE_DIRS = {'.git', '.venv', '__pycache__', 'build', 'clanka.egg-info', 'node_modules', 'memory'}
+DB_PATH = "memory/workbench.db"
+IGNORE_DIRS = {'.git', '.venv', '__pycache__', 'build', '*.egg-info', 'node_modules', 'memory'}
 
 # source_types that build_index() owns and is allowed to rebuild wholesale.
 # 'chat' is deliberately excluded - it's append-only from this module's POV.
