@@ -1,11 +1,3 @@
-"""
-CLANKA CONFIG / RESOURCE CONTROL
-=================================
-Pure logic - no CLI printing. `mem_percent` is the one user-facing knob;
-everything else (num_ctx, top_k, chunk size) derives from it so the rest
-of the codebase doesn't have to know about raw byte budgets.
-"""
-
 import json
 import os
 from pathlib import Path
@@ -15,11 +7,11 @@ try:
 except ImportError:
     psutil = None
 
-CONFIG_DIR = Path(os.path.expanduser("~/.clanka"))
+CONFIG_DIR = Path(os.path.expanduser("~/.workbench"))
 CONFIG_PATH = CONFIG_DIR / "config.json"
 
 DEFAULTS = {
-    "mem_percent": 50,      # % of system RAM Clanka is allowed to target
+    "mem_percent": 40,      # % of system RAM is allowed to target
     "persona": "default",
     "last_consolidated": 0,  # unix timestamp, used later by memory consolidation
 }
@@ -51,7 +43,7 @@ def load_config():
 
 
 def save_config(config):
-    """Writes config to disk. Creates ~/.clanka if needed."""
+    """Writes config to disk. Creates ~/.workbench if needed."""
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     CONFIG_PATH.write_text(json.dumps(config, indent=2))
 
