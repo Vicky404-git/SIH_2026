@@ -9,6 +9,18 @@ except ImportError:
 from .config import get_ollama_options, get_rag_params
 from .rag import search, add_chat_memory, DB_PATH
 
+from core.rag import search
+from core.agent import Tool, ToolResult
+
+def kb_search_tool(query: str) -> ToolResult:
+    hits = search(query, top_k=3)
+    if not hits:
+        return ToolResult(ok=False, output="No relevant SOPs/manuals found.")
+    text = "\n".join(f"[{d['file']}] {d['content'][:300]}" for _, d in hits)
+    return ToolResult(ok=True, output=text)
+
+kb_tool = Tool("search_knowledge_base", kb_search_tool, "Search internal SOPs/manuals for relevant context")
+
 # Model registry mapped by capability
 MODEL_MAP = {
     "coding": "ssfdre38/gemma4-turbo:latest",
