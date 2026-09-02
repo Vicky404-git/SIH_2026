@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, Optional
+from typing import Optional
 
 try:
     import ollama
@@ -8,116 +8,107 @@ except ImportError:
 
 from .config import get_ollama_options, get_rag_params
 from .rag import search, add_chat_memory, DB_PATH
+from .agent import Agent, Tool, ToolResult
+from .doc_gen import docgen_tool
 
-from core.rag import search
-from core.agent import Tool, ToolResult
-
-def kb_search_tool(query: str) -> ToolResult:
-    hits = search(query, top_k=3)
-    if not hits:
-        return ToolResult(ok=False, output="No relevant SOPs/manuals found.")
-    text = "\n".join(f"[{d['file']}] {d['content'][:300]}" for _, d in hits)
-    return ToolResult(ok=True, output=text)
-
-kb_tool = Tool("search_knowledge_base", kb_search_tool, "Search internal SOPs/manuals for relevant context")
-
-# Model registry mapped by capability
 MODEL_MAP = {
     "coding": "ssfdre38/gemma4-turbo:latest",
     "vision": "ssfdre38/gemma4-turbo:latest",
     "reasoning": "ssfdre38/gemma4-turbo:latest",
-    "general": "ssfdre38/gemma4-turbo:latest"
+    "general": "ssfdre38/gemma4-turbo:latest",
 }
 
-def classify_task(prompt: str, has_image: bool = False) -> str:
-    """Keyword-based intent classifier for zero-latency routing."""
+
+def classify_task(prompt: str, has_image: bool = False):
     if has_image:
-        return "vision"
-    
+        return "vision", "image attached → routed to vision model"
+
     prompt_lower = prompt.lower()
     code_keywords = {"code", "python", "script", "function", "bug", "error", "refactor", "sql", "exec"}
-    
-    if any(kw in prompt_lower for kw in code_keywords):
-        return "coding"
-    
-    return "reasoning"
+    matched = [kw for kw in code_keywords if kw in prompt_lower]
+
+    if matched:
+        return "coding", f"matched keywords {matched} → routed to coding model"
+
+    return "reasoning", "no code/image signals → routed to general reasoning model"
 
 
-def run_agent(
-    prompt: str, 
-    image_path: Optional[str] = None, 
-    persona: str = "default",
-    db_path: str = DB_PATH
-) -> Dict[str, Any]:
+def kb_search_tool(query: str, db_path: str = DB_PATH) -> ToolResult:
+    rag_params = get_rag_params()
+    hits = search(query, top_k=rag_params["top_k"], db_path=db_path)
+    if not hits:
+        return ToolResult(ok=False, output="No relevant SOPs/manuals found in local knowledge base.")
+
+    lines = []
+    for score, doc in hits:
+        if score < 0.3:
+            confidence = "strong match"
+        elif score < 0.6:
+            confidence = "weak match"
+        else:
+            confidence = "low relevance"
+        lines.append(f"[{doc['file']}] ({confidence}, distance={score:.3f}) {doc['content'][:300]}")
+
+    return ToolResult(ok=True, output="\n".join(lines))
+
+
+kb_tool = Tool(
+    "search_knowledge_base",
+    kb_search_tool,
+    "Search internal SOPs/manuals for relevant grounded context. Returns matches with confidence labels."
+)
+
+
+def build_llm_call(persona: str = "default", db_path: str = DB_PATH):
+    """Returns a callable(prompt)->raw_text, bound to a specific model per task type.
+    This is what gets passed into Agent(llm_call=...).
     """
-    Main agent pipeline:
-    1. Route task to specific model
-    2. Retrieve local knowledge (RAG)
-    3. Call local Ollama model with system/RAM limits
-    4. Save conversation memory
-    """
+    def llm_call(agent_prompt: str) -> str:
+        # crude but cheap re-classification per call, since the agent loop
+        # may touch multiple task types across its steps
+        task_type, reason = classify_task(agent_prompt)
+        model_name = MODEL_MAP.get(task_type, MODEL_MAP["general"])
+        ollama_opts = get_ollama_options()
+
+        response = ollama.generate(
+            model=model_name,
+            prompt=agent_prompt,
+            options=ollama_opts,
+        )
+        return response.get("response", "")
+
+    return llm_call
+
+
+def run_agent(prompt: str, image_path: Optional[str] = None, persona: str = "default", db_path: str = DB_PATH) -> dict:
     if ollama is None:
         return {"error": "Ollama package is not installed."}
 
-    # 1. Classify & Select Model
-    task_type = classify_task(prompt, has_image=bool(image_path))
-    model_name = MODEL_MAP.get(task_type, MODEL_MAP["general"])
-    
-    # 2. Get Resource Throttling Options & RAG Params
-    ollama_opts = get_ollama_options()
-    rag_params = get_rag_params()
+    tools = [kb_tool, docgen_tool]  # sandbox tool gets added here once Docker wrapper is ready
 
-    # 3. Retrieve RAG Context (for non-vision tasks)
-    context_chunks = []
-    sources = []
-    if task_type != "vision":
-        hits = search(prompt, top_k=rag_params["top_k"], db_path=db_path)
-        for score, doc in hits:
-            context_chunks.append(doc["content"])
-            sources.append(doc["file"])
+    llm_call = build_llm_call(persona=persona, db_path=db_path)
+    agent = Agent(llm_call=llm_call, tools=tools, max_steps=6)
 
-    context_str = "\n---\n".join(context_chunks) if context_chunks else "No internal SOPs or reference docs found."
+    result = agent.run(prompt)
 
-    # 4. Construct System Prompt
-    system_prompt = (
-        f"You are a sovereign, air-gapped industrial AI assistant.\n"
-        f"Task Type: {task_type.upper()}\n"
-        f"Grounded Context:\n{context_str}\n\n"
-        f"Answer the user's request accurately using the grounded context provided if relevant."
-    )
+    # write to chat memory regardless of completed/incomplete status
+    add_chat_memory(prompt, str(result["result"]), persona=persona, db_path=db_path)
 
-    # 5. Call Model via Ollama
-    try:
-        if task_type == "vision" and image_path and os.path.exists(image_path):
-            response = ollama.generate(
-                model=model_name,
-                prompt=prompt,
-                images=[image_path],
-                options=ollama_opts
-            )
-        else:
-            response = ollama.generate(
-                model=model_name,
-                prompt=prompt,
-                system=system_prompt,
-                options=ollama_opts
-            )
+    # ── AUDIT LOG: append the full trace to disk, one line per run ──
+    _write_audit_log(prompt, result)
 
-        output_text = response.get("response", "")
+    return result
 
-        # 6. Append to Chat Memory
-        add_chat_memory(prompt, output_text, persona=persona, db_path=db_path)
 
-        return {
-            "response": output_text,
-            "task_type": task_type,
-            "model_used": model_name,
-            "sources": list(set(sources))
-        }
-
-    except Exception as e:
-        return {
-            "error": f"Model execution failed: {str(e)}",
-            "task_type": task_type,
-            "model_used": model_name
-        }
+def _write_audit_log(prompt: str, result: dict, log_path: str = "memory/audit_log.jsonl"):
+    import json, time
+    os.makedirs(os.path.dirname(log_path) or ".", exist_ok=True)
+    entry = {
+        "timestamp": time.time(),
+        "prompt": prompt,
+        "status": result["status"],
+        "trace": result["trace"],
+        "final_result": result["result"],
+    }
+    with open(log_path, "a") as f:
+        f.write(json.dumps(entry) + "\n")

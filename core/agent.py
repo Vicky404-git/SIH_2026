@@ -55,10 +55,10 @@ class Agent:
         summary = self._summarize_partial(history)
         return {"result": summary, "trace": trace.steps, "status": "incomplete"}
 
-    def _build_prompt(self, task, history):
-        tool_menu = "\n".join(f"- {t.name}: {t.description}" for t in self.tools.values())
-        hist = "\n".join(history) if history else "(nothing yet)"
-        return f"""Task: {task}
+def _build_prompt(self, task, history):
+tool_menu = "\n".join(f"- {t.name}: {t.description}" for t in self.tools.values())
+hist = "\n".join(history) if history else "(nothing yet)"
+return f"""Task: {task}
 
 Available tools:
 {tool_menu}
@@ -66,11 +66,20 @@ Available tools:
 History:
 {hist}
 
-Respond ONLY as JSON:
+Respond ONLY as JSON, one of:
+
 {{"action": "call_tool", "tool": "<name>", "arg": "<arg>"}}
-or
-{{"action": "finish", "result": "<final deliverable text/path>"}}
+
+or, when you have enough information to finish:
+
+{{
+  "action": "finish",
+  "result": "<the final deliverable — text, file path, or code>",
+  "reasoning": "<step-by-step justification, reference tool outputs and sources by name>",
+  "confidence": "high | medium | low",
+  "sources_used": ["<file names or 'none' if no KB hit was used>"]
+}}
 """
 
-    def _summarize_partial(self, history):
-        return "Stopped before finishing. Progress so far:\n" + "\n".join(history)
+def _summarize_partial(self, history):
+return "Stopped before finishing. Progress so far:\n" + "\n".join(history)
