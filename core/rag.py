@@ -247,6 +247,29 @@ def search(query, top_k=3, source_types=None, db_path=DB_PATH):
     finally:
         db.close()
 
+# ==========================================
+# Clear Session
+# ==========================================
+def clear_session(db_path=DB_PATH):
+    """Wipes conversational memory ('chat' chunks), leaving codebase/docs intact."""
+    if not os.path.exists(db_path):
+        return 0
+        
+    db = get_db(db_path)
+    try:
+        rows = db.execute("SELECT rowid FROM chunks WHERE source_type = 'chat'").fetchall()
+        old_rowids = [r["rowid"] for r in rows]
+        
+        if old_rowids:
+            ph = ",".join("?" for _ in old_rowids)
+            db.execute(f"DELETE FROM vec_chunks WHERE rowid IN ({ph})", old_rowids)
+            db.execute(f"DELETE FROM chunks WHERE rowid IN ({ph})", old_rowids)
+            db.commit()
+            
+        return len(old_rowids)
+    finally:
+        db.close()
+
 
 # ==========================================
 # STANDALONE TESTING

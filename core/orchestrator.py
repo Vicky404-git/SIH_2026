@@ -11,13 +11,20 @@ from .rag import search, add_chat_memory, DB_PATH
 from .agent import Agent, Tool, ToolResult
 from .doc_gen import docgen_tool
 
-MODEL_MAP = {
-    "coding": "ssfdre38/gemma4-turbo:latest",
-    "vision": "ssfdre38/gemma4-turbo:latest",
-    "reasoning": "ssfdre38/gemma4-turbo:latest",
-    "general": "ssfdre38/gemma4-turbo:latest",
-}
+from .config import load_config
+from .model_registry import discover_models
 
+def get_model_map():
+    config = load_config()
+    user_map = config.get("model_map", {})
+    discovered = discover_models()
+
+    fallback = {}
+    for cap in ("coding", "vision", "reasoning", "general"):
+        match = next((m["name"] for m in discovered if m["guessed_capability"] == cap), None)
+        fallback[cap] = match  # None if nothing found — don't silently misassign
+
+    return {**fallback, **user_map}
 
 def classify_task(prompt: str, has_image: bool = False):
     if has_image:
@@ -41,9 +48,9 @@ def kb_search_tool(query: str, db_path: str = DB_PATH) -> ToolResult:
 
     lines = []
     for score, doc in hits:
-        if score < 0.3:
+        if score < 14:
             confidence = "strong match"
-        elif score < 0.6:
+        elif score < 18:
             confidence = "weak match"
         else:
             confidence = "low relevance"
@@ -60,41 +67,56 @@ kb_tool = Tool(
 
 
 def build_llm_call(persona: str = "default", db_path: str = DB_PATH):
-    """Returns a callable(prompt)->raw_text, bound to a specific model per task type.
-    This is what gets passed into Agent(llm_call=...).
-    """
-    def llm_call(agent_prompt: str) -> str:
-        # crude but cheap re-classification per call, since the agent loop
-        # may touch multiple task types across its steps
-        task_type, reason = classify_task(agent_prompt)
-        model_name = MODEL_MAP.get(task_type, MODEL_MAP["general"])
+    def llm_call(agent_prompt: str, has_image: bool = False) -> str:
+        task_type, reason = classify_task(agent_prompt, has_image= has_image)
+        current_map = get_model_map()
+        
+        # EXPLICIT GUARD: Fail loudly if vision is required but not installed
+        if task_type == "vision" and not current_map.get("vision"):
+            return '{"action": "finish", "result": "ERROR: No vision-capable model installed. Please run `ollama pull llava:7b`.", "reasoning": "System error", "confidence": "high"}'
+        
+        # Standard fallback for other types
+        model_name = current_map.get(task_type) or current_map.get("general")
+        
+        if not model_name:
+             return '{"action": "finish", "result": "ERROR: No models found.", "reasoning": "System error", "confidence": "high"}'
+
         ollama_opts = get_ollama_options()
 
         response = ollama.generate(
             model=model_name,
             prompt=agent_prompt,
             options=ollama_opts,
+            format= "json",
         )
         return response.get("response", "")
 
     return llm_call
 
 
-def run_agent(prompt: str, image_path: Optional[str] = None, persona: str = "default", db_path: str = DB_PATH) -> dict:
+def run_agent(
+    prompt: str,
+    project_id: str = "workbench",
+    image_path: Optional[str] = None,
+    persona: str = "default"
+) -> dict:
+
     if ollama is None:
         return {"error": "Ollama package is not installed."}
 
-    tools = [kb_tool, docgen_tool]  # sandbox tool gets added here once Docker wrapper is ready
+    dynamic_db_path = f"memory/{project_id}.db"
+    tools = [kb_tool, docgen_tool]
 
-    llm_call = build_llm_call(persona=persona, db_path=db_path)
-    agent = Agent(llm_call=llm_call, tools=tools, max_steps=6)
+    llm_call = build_llm_call(persona=persona, db_path=dynamic_db_path)
+    agent = Agent(llm_call=llm_call, tools=tools, max_steps=6)          # <-- agent created FIRST
 
-    result = agent.run(prompt)
+    task_type, routing_reason = classify_task(prompt, has_image=bool(image_path))
+    result = agent.run(prompt, has_image=bool(image_path))              # <-- then used
 
-    # write to chat memory regardless of completed/incomplete status
-    add_chat_memory(prompt, str(result["result"]), persona=persona, db_path=db_path)
+    result["task_type"] = task_type
+    result["routing_reason"] = routing_reason
 
-    # ── AUDIT LOG: append the full trace to disk, one line per run ──
+    add_chat_memory(prompt, str(result["result"]), persona=persona, db_path=dynamic_db_path)
     _write_audit_log(prompt, result)
 
     return result
