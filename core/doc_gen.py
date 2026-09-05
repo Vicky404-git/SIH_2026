@@ -13,4 +13,8 @@ def generate_docx(markdown_content: str) -> ToolResult:
         return ToolResult(ok=False, output=result.stderr)
     return ToolResult(ok=True, output=out_path)
 
-docgen_tool = Tool("generate_docx", generate_docx, "Convert markdown content into a Word document, returns file path")
+docgen_tool = Tool(
+    "generate_docx", 
+    generate_docx, 
+    "ONLY use this tool if the user explicitly asks to 'generate a document', 'create a report', or 'make a .docx file'. Do NOT use this for code."
+)
