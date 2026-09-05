@@ -14,6 +14,7 @@ DEFAULTS = {
     "mem_percent": 40,      # % of system RAM is allowed to target
     "persona": "default",
     "last_consolidated": 0,  # unix timestamp, used later by memory consolidation
+    "model_map":{},
 }
 
 # Rough context-window ladder. Bigger num_ctx = more RAM for the KV cache.
@@ -26,6 +27,14 @@ _CTX_LADDER = [
     (80, 8192),
     (100, 16384),
 ]
+
+def set_model_for_capability(capability: str, model_name: str):
+    config = load_config()
+    model_map = config.get("model_map", {})
+    model_map[capability] = model_name
+    config["model_map"] = model_map
+    save_config(config)
+    return config
 
 
 def load_config():
