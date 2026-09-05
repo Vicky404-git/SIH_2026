@@ -1,113 +1,74 @@
 import streamlit as st
+import os, tempfile
 from core.orchestrator import run_agent
 
 st.set_page_config(page_title="Sovereign AI Workbench", layout="wide", page_icon="🔒")
-# --- 2000s GEN X SOFT CLUB UI INJECTION ---
-st.markdown("""
-<style>
-/* Deep dark background with soft system monospace font */
-.stApp {
-    background-color: #0a0a0f; 
-    color: #a3a3b5; 
-    font-family: 'Courier New', Consolas, monospace;
-}
 
-/* Soft glowing headers */
-h1, h2, h3 {
-    color: #d8d8e6 !important; 
-    text-shadow: 0px 0px 8px rgba(216, 216, 230, 0.3);
-    font-weight: normal;
-    letter-spacing: -1px;
-}
-
-/* Translucent, dashed-border chat bubbles */
-.stChatMessage {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px dashed #3a3a52; 
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
-}
-
-/* Cyber-soft chat input */
-.stChatInputContainer textarea {
-    background-color: #12121a !important;
-    color: #00ffcc !important; /* Soft cyan text */
-    border: 1px solid #2a2a3d !important;
-    border-radius: 6px;
-}
-.stChatInputContainer textarea:focus {
-    border-color: #00ffcc !important;
-    box-shadow: 0 0 8px rgba(0, 255, 204, 0.2) !important;
-}
-
-/* Dimmed, brutalist sidebar */
-[data-testid="stSidebar"] {
-    background-color: #0d0d12;
-    border-right: 1px solid #1a1a24;
-}
-
-/* Checkboxes and accents */
-.stCheckbox label {
-    color: #dda0dd !important; /* Soft plum */
-}
-hr {
-    border-color: #2a2a3d;
-}
-</style>
-""", unsafe_allow_html=True)
+st.markdown("""<style> ... (keep your existing 2000s Gen X CSS block unchanged) ... </style>""", unsafe_allow_html=True)
 
 st.title("🔒 Sovereign On-Premise Agentic AI")
 st.markdown("Air-gapped industrial AI assistant. Zero external network calls.")
 
-# Sidebar for Air-Gap Proof / Status
 with st.sidebar:
     st.header("System Status")
     st.success("Network Egress: 0 Bytes")
     st.info("Vector DB: sqlite-vec (Local)")
-    st.info("Models: ssfdre38/gemma4-turbo")
-    
     st.divider()
     st.markdown("**Active Tools:**")
     st.checkbox("Local RAG Search", value=True, disabled=True)
-    st.checkbox("Docker Sandbox (Code)", value=False, disabled=True) # Next step!
+    st.checkbox("Document Generation (docx)", value=True, disabled=True)
+    st.checkbox("Docker Sandbox (Code)", value=False, disabled=True)  # flip once built
 
-# Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Display chat history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# User Input
-if prompt := st.chat_input("Ask a question about your documents or request a task..."):
-    # Display user message
+uploaded_image = st.file_uploader("Attach scanned document / image (optional)", type=["png", "jpg", "jpeg", "pdf"])
+
+if prompt := st.chat_input("Ask a question or request a task..."):
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Call Orchestrator
-    with st.spinner("Agent is reasoning (Local Inference)..."):
-        res = run_agent(prompt)
-        
-        if "error" in res:
-            full_response = f"🚨 **ERROR:** {res['error']}"
-        else:
-            sources_str = ", ".join(res.get("sources", [])) if res.get("sources") else "None"
-            
-            # Format the output beautifully
-            full_response = (
-                f"{res.get('response')}\n\n"
-                f"---\n"
-                f"**Task Type:** `{res.get('task_type')}` | "
-                f"**Model:** `{res.get('model_used')}` | "
-                f"**Sources:** `{sources_str}`"
-            )
-        
-    # Display assistant response
+    image_path = None
+    if uploaded_image is not None:
+        suffix = os.path.splitext(uploaded_image.name)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            tmp.write(uploaded_image.read())
+            image_path = tmp.name
+
+    with st.spinner("Agent is reasoning (local inference)..."):
+        res = run_agent(prompt, image_path=image_path)
+
     with st.chat_message("assistant"):
-        st.markdown(full_response)
-    
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+        result_text = res.get("result", "")
+
+        # If the agent produced a real file (docx), offer it as a download
+        if isinstance(result_text, str) and result_text.endswith(".docx") and os.path.exists(result_text):
+            st.markdown("✅ Document generated:")
+            with open(result_text, "rb") as f:
+                st.download_button("Download .docx", f, file_name=os.path.basename(result_text))
+        else:
+            st.markdown(result_text)
+
+        confidence = res.get("confidence", "unknown")
+        badge_color = {"high": "green", "medium": "orange", "low": "red"}.get(confidence, "gray")
+        st.markdown(f"**Confidence:** :{badge_color}[{confidence.upper()}]")
+
+        with st.expander("🧠 Agent reasoning"):
+            st.write(res.get("reasoning", "No reasoning provided."))
+
+        with st.expander("🔀 Routing decision"):
+            st.write(f"Task type: `{res.get('task_type', 'unknown')}`")
+            st.write(res.get("routing_reason", "No routing info available."))
+
+        with st.expander("📋 Full step trace"):
+            for step in res.get("trace", []):
+                st.json(step)
+
+        if res.get("status") == "incomplete":
+            st.warning("⚠️ Agent stopped before finishing — see progress above.")
+
+    st.session_state.messages.append({"role": "assistant", "content": result_text if isinstance(result_text, str) else str(result_text)})
