@@ -1,14 +1,37 @@
 import streamlit as st
-import os, tempfile
+import os
+import tempfile
+from pathlib import Path
+
 from core.orchestrator import run_agent
 
 st.set_page_config(page_title="Sovereign AI Workbench", layout="wide", page_icon="🔒")
 
-st.markdown("""<style> ... (keep your existing 2000s Gen X CSS block unchanged) ... </style>""", unsafe_allow_html=True)
+# ── Load external CSS + HTML fragments ──────────────────────────────
+BASE_DIR = Path(__file__).parent
 
-st.title("🔒 Sovereign On-Premise Agentic AI")
-st.markdown("Air-gapped industrial AI assistant. Zero external network calls.")
+def load_file(path: str) -> str:
+    p = BASE_DIR / path
+    if not p.exists():
+        return ""
+    return p.read_text(encoding="utf-8")
 
+css = load_file("static/style.css")
+header_html = load_file("static/index.html")
+
+if css:
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+else:
+    st.warning("style.css not found — using default Streamlit theme.")
+
+if header_html:
+    st.markdown(header_html, unsafe_allow_html=True)
+else:
+    # fallback so the app still works if index.html is missing/renamed
+    st.title("🔒 Sovereign On-Premise Agentic AI")
+    st.caption("Air-gapped industrial AI assistant — zero external network calls")
+
+# ── Sidebar: tool status, unchanged logic from before ───────────────
 with st.sidebar:
     st.header("System Status")
     st.success("Network Egress: 0 Bytes")
@@ -17,8 +40,9 @@ with st.sidebar:
     st.markdown("**Active Tools:**")
     st.checkbox("Local RAG Search", value=True, disabled=True)
     st.checkbox("Document Generation (docx)", value=True, disabled=True)
-    st.checkbox("Docker Sandbox (Code)", value=False, disabled=True)  # flip once built
+    st.checkbox("Docker Sandbox (Code)", value=False, disabled=True)  # flip once v1.x lands
 
+# ── Chat state ───────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -26,7 +50,19 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-uploaded_image = st.file_uploader("Attach scanned document / image (optional)", type=["png", "jpg", "jpeg", "pdf"])
+uploaded_image = st.file_uploader(
+    "Attach scanned document / image (optional)",
+    type=["png", "jpg", "jpeg", "pdf"],
+)
+
+def confidence_badge_html(confidence: str) -> str:
+    conf = (confidence or "unknown").lower()
+    css_class = {
+        "high": "confidence-high",
+        "medium": "confidence-medium",
+        "low": "confidence-low",
+    }.get(conf, "confidence-medium")
+    return f'<span class="confidence-badge {css_class}">{conf.upper()}</span>'
 
 if prompt := st.chat_input("Ask a question or request a task..."):
     st.chat_message("user").markdown(prompt)
@@ -45,17 +81,20 @@ if prompt := st.chat_input("Ask a question or request a task..."):
     with st.chat_message("assistant"):
         result_text = res.get("result", "")
 
-        # If the agent produced a real file (docx), offer it as a download
+        # Real deliverable (.docx) -> offer download instead of raw text
         if isinstance(result_text, str) and result_text.endswith(".docx") and os.path.exists(result_text):
             st.markdown("✅ Document generated:")
             with open(result_text, "rb") as f:
-                st.download_button("Download .docx", f, file_name=os.path.basename(result_text))
+                st.download_button(
+                    "Download .docx",
+                    f,
+                    file_name=os.path.basename(result_text),
+                )
         else:
             st.markdown(result_text)
 
         confidence = res.get("confidence", "unknown")
-        badge_color = {"high": "green", "medium": "orange", "low": "red"}.get(confidence, "gray")
-        st.markdown(f"**Confidence:** :{badge_color}[{confidence.upper()}]")
+        st.markdown(f"**Confidence:** {confidence_badge_html(confidence)}", unsafe_allow_html=True)
 
         with st.expander("🧠 Agent reasoning"):
             st.write(res.get("reasoning", "No reasoning provided."))
@@ -71,4 +110,7 @@ if prompt := st.chat_input("Ask a question or request a task..."):
         if res.get("status") == "incomplete":
             st.warning("⚠️ Agent stopped before finishing — see progress above.")
 
-    st.session_state.messages.append({"role": "assistant", "content": result_text if isinstance(result_text, str) else str(result_text)})
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": result_text if isinstance(result_text, str) else str(result_text),
+    })
