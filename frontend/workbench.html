@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Workbench — Sovereign AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/workbench.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <a class="skip-link" href="#composer-input">Skip to composer</a>
+  <div id="app-root" class="page-workbench">
+    <section class="workbench-main">
+      <header class="wb-header">
+        <div>
+          <h1>AI Workbench</h1>
+          <p>Secure Agentic Intelligence</p>
+        </div>
+        <div>
+          <span class="badge badge-info">Run <span id="run-state">IDLE</span></span>
+          <button type="button" class="btn btn-sm context-toggle" id="context-toggle">Evidence</button>
+        </div>
+      </header>
+      <div class="chat-scroll" id="chat-scroll">
+        <div class="empty-state" id="empty-state">
+          <h2>How can Sovereign AI help?</h2>
+          <p>Ask about your documents, equipment, maintenance data or technical procedures.</p>
+          <div class="prompt-chips">
+            <button type="button" class="chip" data-prompt="Analyze the condition of this compressor bearing and compare it with the maintenance guidelines.">Analyze equipment condition</button>
+            <button type="button" class="chip" data-prompt="Find the maintenance procedure for rotating equipment LOTO on C-204.">Find maintenance procedure</button>
+            <button type="button" class="chip" data-prompt="Compare inspection readings for C-204 bearing temperature against threshold.">Compare inspection readings</button>
+            <button type="button" class="chip" data-prompt="Generate a technical maintenance report.">Generate technical report</button>
+          </div>
+        </div>
+      </div>
+      <div class="composer">
+        <div id="upload-status" class="card" hidden style="margin-bottom:10px;padding:10px 12px">
+          <div id="upload-label">Uploading…</div>
+          <div class="progress" aria-hidden="true"><span id="upload-bar"></span></div>
+        </div>
+        <div class="dropzone" id="dropzone">Drop PDF, DOCX or inspection images here — or use Attach</div>
+        <div class="attach-row" id="attach-row"></div>
+        <div class="composer-box">
+          <label class="sr-only" for="composer-input">Ask Sovereign AI</label>
+          <textarea id="composer-input" rows="2" placeholder="Ask Sovereign AI anything…"></textarea>
+          <div class="composer-bar">
+            <button type="button" class="btn btn-ghost" id="attach-btn">📎 Attach</button>
+            <button type="button" class="btn btn-primary" id="send-btn">Send →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <aside class="context-panel" id="context-panel" aria-label="Evidence and agent activity">
+      <section class="context-section">
+        <h2>Active Model</h2>
+        <p>Open-weight Multimodal Model</p>
+        <p class="status-ok">Status: Ready</p>
+      </section>
+      <section class="context-section">
+        <h2>Knowledge Bases</h2>
+        <p>✓ Maintenance Manuals</p>
+        <p>✓ Equipment Specifications</p>
+      </section>
+      <section class="context-section">
+        <h2>Agent Activity</h2>
+        <div class="trace" id="trace-list"><p class="metric-sub">No active run.</p></div>
+      </section>
+      <section class="context-section">
+        <h2>Sources &amp; Evidence</h2>
+        <div id="sources-list"><p class="metric-sub">Citations appear after a completed retrieval.</p></div>
+      </section>
+      <section class="context-section">
+        <h2>Security Status</h2>
+        <p>✓ ON-PREMISE</p>
+        <p>✓ AIR-GAPPED</p>
+        <p>✓ RBAC ACTIVE</p>
+        <p class="metric-sub" style="margin-top:8px">Network Egress<br><strong>0 external calls</strong></p>
+        <p class="metric-sub">Permission Scope<br><strong>Current User</strong></p>
+        <p class="metric-sub">Audit Logging<br><strong>ACTIVE</strong></p>
+      </section>
+    </aside>
+  </div>
+  <script src="js/mock-api.js"></script>
+  <script src="js/session.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/trace.js"></script>
+  <script src="js/upload.js"></script>
+  <script src="js/workbench.js"></script>
+</body>
+</html>
