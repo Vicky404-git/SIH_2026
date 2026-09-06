@@ -43,6 +43,19 @@ with st.sidebar:
     st.checkbox("Docker Sandbox (Code)", value=False, disabled=True)  # flip once v1.x lands
 
 # ── Chat state ───────────────────────────────────────────────────────
+
+# right after the sidebar block, before "for message in st.session_state.messages:"
+if not st.session_state.messages:
+    st.markdown("**Try asking:**")
+    cols = st.columns(2)
+    prompts = [
+        "Search the knowledge base and summarize what you find",
+        "Generate a technical report from the last analysis",
+    ]
+    for col, p in zip(cols, prompts):
+        if col.button(p):
+            st.session_state.pending_prompt = p
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -99,6 +112,13 @@ if prompt := st.chat_input("Ask a question or request a task..."):
     with st.spinner("Agent is reasoning (local inference)..."):
         res = run_agent(prompt, image_path=image_path)
 
+    with st.expander("📋 Agent Activity", expanded=True):
+        for i, step in enumerate(res.get("trace", []), 1):
+            icon = "✅" if step.get("result_ok", True) else "❌"
+            action = step.get("tool") or step.get("error") or "reasoning"
+            st.markdown(f"{icon} **Step {i}:** {action}")
+
+   
     with st.chat_message("assistant"):
         result_text = res.get("result", "")
 
