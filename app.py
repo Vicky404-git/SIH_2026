@@ -105,11 +105,11 @@ if prompt := st.chat_input("Ask a question or request a task..."):
         # Real deliverable (.docx) -> offer download instead of raw text
         if isinstance(result_text, str) and result_text.endswith(".docx") and os.path.exists(result_text):
             st.markdown("✅ Document generated:")
-            with open(result_text, "rb") as f:
+            with open(result_text.strip(), "rb") as f:
                 st.download_button(
                     "Download .docx",
                     f,
-                    file_name=os.path.basename(result_text),
+                    file_name=os.path.basename(result_text.strip()),
                 )
         else:
             st.markdown(result_text)
