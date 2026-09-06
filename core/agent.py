@@ -23,7 +23,7 @@ class Agent:
         self.tools = {t.name: t for t in tools}
         self.max_steps = max_steps
 
-    def run(self, task: str, has_image: bool = False) -> dict:
+    def run(self, task: str, has_image: bool = False, image_path: str = None) -> dict:
 
         trace = Trace()
         history = []
@@ -31,7 +31,7 @@ class Agent:
         
         for step in range(self.max_steps):
             prompt = self._build_prompt(task, history)
-            raw = self.llm_call(prompt, has_image = has_image)
+            raw = self.llm_call(prompt, has_image = has_image, image_path = image_path)
             
             print(f"\n[DEBUG] Step {step} Raw LLM Output:\n{raw}\n{'-'*40}")
 

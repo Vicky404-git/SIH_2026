@@ -69,27 +69,34 @@ kb_tool = Tool(
 
 
 def build_llm_call(persona: str = "default", db_path: str = DB_PATH):
-    def llm_call(agent_prompt: str, has_image: bool = False) -> str:
-        task_type, reason = classify_task(agent_prompt, has_image= has_image)
+    def llm_call(agent_prompt: str, has_image: bool = False, image_path: str = None) -> str:
+        task_type, reason = classify_task(agent_prompt, has_image=has_image)
         current_map = get_model_map()
-        
-        # EXPLICIT GUARD: Fail loudly if vision is required but not installed
-        if task_type == "vision" and not current_map.get("vision"):
-            return '{"action": "finish", "result": "ERROR: No vision-capable model installed. Please run `ollama pull llava:7b`.", "reasoning": "System error", "confidence": "high"}'
-        
-        # Standard fallback for other types
-        model_name = current_map.get(task_type) or current_map.get("general")
-        
-        if not model_name:
-             return '{"action": "finish", "result": "ERROR: No models found.", "reasoning": "System error", "confidence": "high"}'
 
-        ollama_opts = get_ollama_options()
+        if task_type == "vision":
+            model_name = current_map.get("vision")
+            if not model_name:
+                return '{"action": "finish", "result": "ERROR: No vision-capable model installed. Please run `ollama pull llava:7b`.", "reasoning": "System error", "confidence": "high"}'
+            if not image_path:
+                return '{"action": "finish", "result": "ERROR: Vision task classified but no image was provided.", "reasoning": "System error", "confidence": "high"}'
+            response = ollama.generate(
+                model=model_name,
+                prompt=agent_prompt,
+                images=[image_path],
+                options=get_ollama_options(),
+                format="json",
+            )
+            return response.get("response", "")
+
+        model_name = current_map.get(task_type) or current_map.get("general")
+        if not model_name:
+            return '{"action": "finish", "result": "ERROR: No models found.", "reasoning": "System error", "confidence": "high"}'
 
         response = ollama.generate(
             model=model_name,
             prompt=agent_prompt,
-            options=ollama_opts,
-            format= "json",
+            options=get_ollama_options(),
+            format="json",
         )
         return response.get("response", "")
 
@@ -110,7 +117,7 @@ def run_agent(prompt, project_id="workbench", image_path=None, persona="default"
     agent = Agent(llm_call=llm_call, tools=tools, max_steps=6)          # <-- agent created FIRST
 
     task_type, routing_reason = classify_task(prompt, has_image=bool(image_path))
-    result = agent.run(prompt, has_image=bool(image_path))              # <-- then used
+    result = agent.run(prompt, has_image=bool(image_path), image_path=image_path)
 
     result["task_type"] = task_type
     result["routing_reason"] = routing_reason
