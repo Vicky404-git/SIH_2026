@@ -5,8 +5,8 @@
 (function (global) {
   "use strict";
 
-  var API_BASE = global.SOVEREIGN_API_BASE || "";
-  var USE_MOCK = global.SOVEREIGN_USE_MOCK !== false;
+  var API_BASE = global.SOVEREIGN_API_BASE || "http://localhost:8000";
+  var USE_MOCK = false;
   var LATENCY = 420;
 
   function delay(ms) {
@@ -562,14 +562,37 @@
 
     sendChatMessage: function (payload) {
       if (!USE_MOCK) {
-        return fetch(API_BASE + "/chat", {
+        var fd = new FormData();
+        // The Python backend expects the text to be named "prompt"
+        fd.append("prompt", payload.message || "");
+        
+        // If the user uploaded an image in the UI, attach it
+        var sessionFiles = SovereignSession.loadFiles();
+        if (sessionFiles && sessionFiles.length > 0 && sessionFiles[0].rawFile) {
+            fd.append("image", sessionFiles[0].rawFile);
+        }
+
+        return fetch(API_BASE + "/run-agent", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: fd, // Do NOT set Content-Type header; fetch does it automatically for FormData
         }).then(function (r) {
+          if (!r.ok) {
+             throw new Error("Backend error: " + r.status);
+          }
           return r.json();
+        }).then(function(backendData) {
+            // Map the Python backend response to exactly what Mahek's UI expects
+            return {
+                result: backendData.result,
+                reasoning: backendData.reasoning || "Reasoning unavailable.",
+                confidence: backendData.confidence || "high",
+                status: backendData.status || "completed",
+                trace: backendData.trace || [],
+                sources: [] 
+            };
         });
       }
+      
       return delay(200).then(function () {
         var text = (payload && payload.message ? payload.message : "").toLowerCase();
         if (/exfiltrat|external api|send this data offsite/.test(text)) {
