@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard — Sovereign AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <a class="skip-link" href="#app-root">Skip to content</a>
+  <main id="app-root" class="page">
+    <header class="page-head">
+      <h1 id="greet">Good morning, Admin</h1>
+      <p>Sovereign AI Workbench Overview</p>
+    </header>
+    <section class="cards" aria-label="Summary">
+      <article class="card"><h2>System Status</h2><div id="stat-status" class="metric">—</div></article>
+      <article class="card"><h2>Active Agents</h2><div id="stat-agents" class="metric">—</div></article>
+      <article class="card"><h2>Documents Indexed</h2><div id="stat-docs" class="metric">—</div></article>
+      <article class="card"><h2>Knowledge Bases</h2><div id="stat-kb" class="metric">—</div></article>
+      <article class="card"><h2>Reports Generated</h2><div id="stat-reports" class="metric">—</div></article>
+      <article class="card"><h2>Security</h2><div id="stat-sec" class="metric">—</div></article>
+    </section>
+    <section class="card" style="margin-top:16px">
+      <h2>Quick Actions</h2>
+      <div class="quick-actions">
+        <a class="btn btn-primary" href="workbench.html">Start New AI Session</a>
+        <a class="btn" href="documents.html">Upload Document</a>
+        <a class="btn" href="workbench.html">Analyze Image</a>
+        <a class="btn" href="reports.html">Generate Report</a>
+      </div>
+    </section>
+    <div class="grid-2">
+      <section class="card">
+        <h2>Recent Conversations</h2>
+        <ul class="list" id="conv-list"></ul>
+      </section>
+      <section class="card">
+        <h2>Recent Agent Activity</h2>
+        <ul class="list" id="act-list"></ul>
+      </section>
+    </div>
+    <section class="card" style="margin-top:16px">
+      <h2>System Health</h2>
+      <div id="health-list"></div>
+    </section>
+  </main>
+  <script src="js/mock-api.js"></script>
+  <script src="js/session.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>

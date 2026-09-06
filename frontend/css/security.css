@@ -1,0 +1,15 @@
+.sec-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.feed li {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.feed time {
+  display: block;
+  color: var(--text-dim);
+  font-size: 11px;
+}

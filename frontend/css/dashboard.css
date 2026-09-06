@@ -1,0 +1,20 @@
+.health-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.health-row:last-child {
+  border-bottom: 0;
+}
+
+.ops-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
