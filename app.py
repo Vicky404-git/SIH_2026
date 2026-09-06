@@ -55,6 +55,27 @@ uploaded_image = st.file_uploader(
     type=["png", "jpg", "jpeg", "pdf"],
 )
 
+# add below the existing image uploader, using the same
+# already-consumed-file_id pattern to avoid re-ingesting on every rerun
+from core.rag import ingest_text
+
+st.sidebar.divider()
+st.sidebar.markdown("**Add to Knowledge Base**")
+uploaded_doc = st.sidebar.file_uploader(
+    "Upload a text/code file (no OCR needed)",
+    type=["txt", "md", "py", "json", "csv", "log"],
+    key="doc_uploader",
+)
+
+if "consumed_doc_id" not in st.session_state:
+    st.session_state.consumed_doc_id = None
+
+if uploaded_doc is not None and uploaded_doc.file_id != st.session_state.consumed_doc_id:
+    content = uploaded_doc.read().decode("utf-8", errors="ignore")
+    chunk_count = ingest_text(content, source_name=uploaded_doc.name, source_type="doc")
+    st.session_state.consumed_doc_id = uploaded_doc.file_id
+    st.sidebar.success(f"Added {chunk_count} chunks from '{uploaded_doc.name}' to memory.")
+
 def confidence_badge_html(confidence: str) -> str:
     conf = (confidence or "unknown").lower()
     css_class = {
