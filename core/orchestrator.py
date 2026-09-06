@@ -40,22 +40,24 @@ def classify_task(prompt: str, has_image: bool = False):
     return "reasoning", "no code/image signals → routed to general reasoning model"
 
 
+
+
+_last_sources = []  # reset per run — fine for single-user demo, not thread-safe for concurrent users
+
 def kb_search_tool(query: str, db_path: str = DB_PATH) -> ToolResult:
+    global _last_sources
     rag_params = get_rag_params()
-    hits = search(query, top_k=rag_params["top_k"], db_path=db_path)
+    hits = search(query, top_k=rag_params["top_k"], source_types=("doc", "code"), db_path=db_path)
     if not hits:
         return ToolResult(ok=False, output="No relevant SOPs/manuals found in local knowledge base.")
 
     lines = []
     for score, doc in hits:
-        if score < 14:
-            confidence = "strong match"
-        elif score < 18:
-            confidence = "weak match"
-        else:
-            confidence = "low relevance"
+        confidence = "strong match" if score < 14 else "weak match" if score < 18 else "low relevance"
         lines.append(f"[{doc['file']}] ({confidence}, distance={score:.3f}) {doc['content'][:300]}")
-
+        _last_sources.append({
+            "id": doc["file"], "title": doc["file"], "page": "", "excerpt": doc["content"][:200],
+        })
     return ToolResult(ok=True, output="\n".join(lines))
 
 
@@ -94,12 +96,9 @@ def build_llm_call(persona: str = "default", db_path: str = DB_PATH):
     return llm_call
 
 
-def run_agent(
-    prompt: str,
-    project_id: str = "workbench",
-    image_path: Optional[str] = None,
-    persona: str = "default"
-) -> dict:
+def run_agent(prompt, project_id="workbench", image_path=None, persona="default") -> dict:
+    global _last_sources
+    _last_sources = []
 
     if ollama is None:
         return {"error": "Ollama package is not installed."}
@@ -119,6 +118,8 @@ def run_agent(
     add_chat_memory(prompt, str(result["result"]), persona=persona, db_path=dynamic_db_path)
     _write_audit_log(prompt, result)
 
+    result["sources"] = _last_sources
+
     return result
 
 
@@ -134,3 +135,4 @@ def _write_audit_log(prompt: str, result: dict, log_path: str = "memory/audit_lo
     }
     with open(log_path, "a") as f:
         f.write(json.dumps(entry) + "\n")
+
