@@ -97,14 +97,14 @@ class Agent:
             {hist}
 
             CRITICAL RULES:
-            1. You are a sovereign agent. Think step-by-step. You must respond ONLY in valid JSON.
-            2. If no relevant manuals are found, you MUST explicitly say so — but you must
-            STILL provide a complete, substantive answer from general knowledge. Admitting
-            the gap is not a substitute for answering the question.
-            3. Example of a correct tool call for generating a document:
-            {"action": "call_tool", "tool": "generate_docx", "arg": "# Title\n\nParagraph text here.\n\n- bullet one\n- bullet two"}
-            The "arg" must always be a single plain markdown STRING, never a JSON object or array.
-            
+                1. You are a sovereign agent. Think step-by-step. You must respond ONLY in valid JSON.
+                2. If no relevant manuals are found, you MUST explicitly say so — but you must
+                STILL provide a complete, substantive answer from general knowledge. Admitting
+                the gap is not a substitute for answering the question.
+                3. Example of a correct tool call for generating a document:
+                {{"action": "call_tool", "tool": "generate_docx", "arg": "# Title\\n\\nParagraph text here."}}
+                The "arg" must always be a single plain markdown STRING, never a JSON object or array.            
+
             Choose one of these two formats:
                 
                 Option 1 (Use a tool):

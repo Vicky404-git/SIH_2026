@@ -1,13 +1,12 @@
-version: '3.8'
-
 services:
   workbench:
     build: .
     ports:
       - "8501:8501"
     volumes:
-      # Keep the vector DB and audit logs persistent on the host
       - ./memory:/app/memory
-    # CRITICAL: Allows the Linux container to resolve host.docker.internal to reach Ollama
+      - ./app.py:/app/app.py
+      - ./core:/app/core
+      - ./static:/app/static
     extra_hosts:
       - "host.docker.internal:host-gateway"
