@@ -101,6 +101,9 @@ class Agent:
             2. If no relevant manuals are found, you MUST explicitly say so — but you must
             STILL provide a complete, substantive answer from general knowledge. Admitting
             the gap is not a substitute for answering the question.
+            3. Example of a correct tool call for generating a document:
+            {"action": "call_tool", "tool": "generate_docx", "arg": "# Title\n\nParagraph text here.\n\n- bullet one\n- bullet two"}
+            The "arg" must always be a single plain markdown STRING, never a JSON object or array.
             
             Choose one of these two formats:
                 
