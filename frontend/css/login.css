@@ -1,0 +1,153 @@
+.login-body {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  background: var(--bg);
+}
+
+.login-brand {
+  position: relative;
+  padding: 56px 64px;
+  overflow: hidden;
+  border-right: 1px solid var(--border);
+  background:
+    radial-gradient(900px 420px at -10% -20%, rgba(62, 143, 124, 0.16), transparent 50%),
+    radial-gradient(700px 380px at 110% 90%, rgba(196, 163, 90, 0.08), transparent 46%),
+    var(--bg-elev);
+}
+
+.login-kicker {
+  letter-spacing: 0.28em;
+  font-size: 12px;
+  color: var(--accent);
+  margin: 0 0 18px;
+}
+
+.login-brand h1 {
+  margin: 0;
+  font-size: 42px;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+}
+
+.login-brand h2 {
+  margin: 10px 0 22px;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.login-brand p.lead {
+  max-width: 420px;
+  color: var(--text-muted);
+}
+
+.schematic {
+  margin-top: 64px;
+  width: min(460px, 100%);
+  opacity: 0.55;
+}
+
+.login-meta {
+  position: absolute;
+  bottom: 32px;
+  left: 64px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.login-panel {
+  display: grid;
+  place-items: center;
+  padding: 40px 24px;
+}
+
+.login-card {
+  width: min(420px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 32px 28px;
+  box-shadow: var(--shadow);
+}
+
+.login-card h2 {
+  margin: 0 0 6px;
+  font-size: 24px;
+}
+.login-card .sub {
+  margin: 0 0 24px;
+  color: var(--text-muted);
+}
+
+.pw-wrap {
+  position: relative;
+}
+.pw-wrap input {
+  width: 100%;
+  padding-right: 44px;
+}
+.pw-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0 18px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.login-card .btn-primary {
+  width: 100%;
+  padding: 12px;
+}
+
+.secure-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.form-error {
+  display: none;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-radius: 8px;
+  font-size: 13px;
+}
+.form-error.show {
+  display: block;
+}
+
+.demo-hint {
+  margin-top: 18px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.field input {
+  width: 100%;
+}
+
+.login-card .field {
+  margin-bottom: 14px;
+}
