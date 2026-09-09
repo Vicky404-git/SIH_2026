@@ -1,0 +1,135 @@
+/* ===========================================
+   SOVEREIGN AI WORKBENCH — 2000s Gen X Soft Club theme
+   =========================================== */
+
+.stApp {
+    background-color: #0a0a0f;
+    color: #a3a3b5;
+    font-family: 'Courier New', Consolas, monospace;
+}
+
+/* ---- Custom header injected from index.html ---- */
+.workbench-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    background: linear-gradient(90deg, #12121a 0%, #0a0a0f 100%);
+    border: 1px solid #2a2a3d;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    box-shadow: 0 0 20px rgba(0, 255, 204, 0.05);
+}
+
+.workbench-header .title-block h1 {
+    margin: 0;
+    font-size: 1.6rem;
+    color: #d8d8e6;
+    text-shadow: 0px 0px 8px rgba(216, 216, 230, 0.3);
+    font-weight: normal;
+    letter-spacing: -1px;
+}
+
+.workbench-header .title-block p {
+    margin: 4px 0 0 0;
+    font-size: 0.85rem;
+    color: #6f6f85;
+}
+
+.workbench-header .badge {
+    padding: 6px 14px;
+    border: 1px dashed #00ffcc;
+    border-radius: 20px;
+    color: #00ffcc;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+/* ---- Status cards row ---- */
+.status-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.status-card {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed #3a3a52;
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+}
+
+.status-card .label {
+    font-size: 0.7rem;
+    color: #6f6f85;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.status-card .value {
+    font-size: 1.1rem;
+    color: #00ffcc;
+    margin-top: 4px;
+}
+
+.status-card.warn .value {
+    color: #dda0dd;
+}
+
+/* ---- Headers ---- */
+h1, h2, h3 {
+    color: #d8d8e6 !important;
+    text-shadow: 0px 0px 8px rgba(216, 216, 230, 0.3);
+    font-weight: normal;
+    letter-spacing: -1px;
+}
+
+/* ---- Chat bubbles ---- */
+.stChatMessage {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed #3a3a52;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Chat input ---- */
+.stChatInputContainer textarea {
+    background-color: #12121a !important;
+    color: #00ffcc !important;
+    border: 1px solid #2a2a3d !important;
+    border-radius: 6px;
+}
+.stChatInputContainer textarea:focus {
+    border-color: #00ffcc !important;
+    box-shadow: 0 0 8px rgba(0, 255, 204, 0.2) !important;
+}
+
+/* ---- Sidebar ---- */
+[data-testid="stSidebar"] {
+    background-color: #0d0d12;
+    border-right: 1px solid #1a1a24;
+}
+
+/* ---- Confidence badges ---- */
+.confidence-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+.confidence-high { background: rgba(0,255,150,0.15); color: #00ff96; border: 1px solid #00ff96; }
+.confidence-medium { background: rgba(255,200,0,0.15); color: #ffc800; border: 1px solid #ffc800; }
+.confidence-low { background: rgba(255,80,80,0.15); color: #ff5050; border: 1px solid #ff5050; }
+
+.stCheckbox label {
+    color: #dda0dd !important;
+}
+hr {
+    border-color: #2a2a3d;
+}

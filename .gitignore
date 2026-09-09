@@ -15,14 +15,6 @@ wheels/
 !.env.example
 
 # Virtual environments
-.venv/
-venv/
-env/
-ENV/
-**/.venv_*/
-
-# Editor and operating system files
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
+.venv
+memory/
+feat/rag-foundation
