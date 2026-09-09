@@ -98,12 +98,24 @@ class Agent:
 
             CRITICAL RULES:
                 1. You are a sovereign agent. Think step-by-step. You must respond ONLY in valid JSON.
+                
                 2. If no relevant manuals are found, you MUST explicitly say so — but you must
-                STILL provide a complete, substantive answer from general knowledge. Admitting
-                the gap is not a substitute for answering the question.
+                    STILL provide a complete, substantive answer from general knowledge. Admitting
+                    the gap is not a substitute for answering the question.
+                
                 3. Example of a correct tool call for generating a document:
-                {{"action": "call_tool", "tool": "generate_docx", "arg": "# Title\\n\\nParagraph text here."}}
-                The "arg" must always be a single plain markdown STRING, never a JSON object or array.            
+                    {{"action": "call_tool", "tool": "generate_docx", "arg": "# Title\\n\\nParagraph text here."}}
+                    The "arg" must always be a single plain markdown STRING, never a JSON object or array.            
+                
+                4. Example of a correct search query:
+                    {{"action": "call_tool", "tool": "search_knowledge_base", "arg": "air-gapped system security"}}
+                    The "arg" for search_knowledge_base must be a SHORT query (a few words) — never a full
+                    answer, paragraph, or explanation. If you already know the answer, just call "finish"
+                    directly instead of searching.
+
+                5. Once a tool call succeeds and gives you what you need, your NEXT response must be
+                    "finish" using that result. Do not call the same tool again with reworded or expanded
+                    arguments — that wastes steps and will be rejected as a duplicate.
 
             Choose one of these two formats:
                 
