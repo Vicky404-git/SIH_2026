@@ -1,4 +1,29 @@
-# this is the Github Repository for SIH 2026
+# SIH 2026 Document Analyser
+
+Analyse PDFs, Word documents, Excel workbooks, CSV files, and images with a
+local Ollama model. PDFs, DOCX, Excel, and CSV files are converted to text
+first; images are processed directly by Qwen's vision capability.
+
+## Setup
+
+```powershell
+pip install -e .
+ollama pull qwen3-vl:4b
+```
+
+Ensure Ollama is running, then analyse a file:
+
+```powershell
+python OCR/document_pipeline.py OCR/input/ai-data-scientist.pdf
+python OCR/document_pipeline.py path/to/report.docx
+python OCR/document_pipeline.py path/to/workbook.xlsx
+python OCR/document_pipeline.py path/to/data.csv
+python OCR/document_pipeline.py OCR/input/handwritten.jpeg
+```
+
+Use `--model` to select another Ollama vision-capable model. Supported
+extensions are PDF, DOCX, XLSX/XLSM/XLTX/XLTM, CSV, PNG, JPG/JPEG, WEBP, BMP,
+GIF, TIF, and TIFF.
 
 ## 🤝 Meet the Team
 
