@@ -1,0 +1,14 @@
+Q Imp Questions
+1. Characteristics of CC
+2 Difference blw parallel and distributed computiny
+3. Difference blw traditional and cloud
+4.
+Explain cloud service model
+5.
+Explain cloud depbyment models
+6.
+Benefits and Limitations of CC
+7.
+Cloud adopting challenges
+8.
+Virtualization & it's role

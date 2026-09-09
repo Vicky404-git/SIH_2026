@@ -1,7 +1,7 @@
 [project]
 name = "sih-2026"
 version = "0.1.0"
-description = "Add your description here"
+description = "Document analysis pipeline for PDFs, Word files, spreadsheets, CSVs, and images"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
