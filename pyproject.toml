@@ -5,7 +5,11 @@ description = "Document analysis pipeline for PDFs, Word files, spreadsheets, CS
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "fastapi>=0.115.0",
     "ollama>=0.6.2",
+    "psutil>=5.9.0",
+    "python-multipart>=0.0.9",
     "sqlite-vec>=0.1.9",
     "streamlit>=1.62.0",
+    "uvicorn>=0.30.0",
 ]

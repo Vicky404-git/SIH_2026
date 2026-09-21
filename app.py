@@ -100,8 +100,6 @@ def confidence_badge_html(confidence: str) -> str:
 # 4. SINGLE Chat Input
 typed_prompt = st.chat_input("Ask a question or request a task...")
 prompt = typed_prompt or selected_prompt
-
-# 5. Process the prompt
 if prompt:
     st.chat_message("user").markdown(prompt)
     st.session_state["messages"].append({"role": "user", "content": prompt})

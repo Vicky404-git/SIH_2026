@@ -1,4 +1,5 @@
 import os
+import tempfile
 from typing import Optional
 
 try:
@@ -6,13 +7,15 @@ try:
 except ImportError:
     ollama = None
 
-from .config import get_ollama_options, get_rag_params
+from .config import get_ollama_options, get_rag_params, get_sandbox_limits
 from .rag import search, add_chat_memory, DB_PATH
 from .agent import Agent, Tool, ToolResult
 from .doc_gen import docgen_tool
+from .sandbox import execute_sandboxed_code
 
 from .config import load_config
-from .model_registry import discover_models
+from .model_registry import discover_models, get_best_model
+from .memory_manager import check_and_consolidate
 
 def get_model_map():
     config = load_config()
@@ -68,13 +71,66 @@ kb_tool = Tool(
 )
 
 
+def execute_code_tool_fn(code_string: str) -> ToolResult:
+    """Agent tool wrapper: writes code to a temp file, executes it inside
+    the OS-level sandbox (resource-limited subprocess), and returns output.
+    Limits are pulled from centralized config (sandbox_timeout_sec, sandbox_max_mem_mb).
+    """
+    limits = get_sandbox_limits()
+    tmp_file = None
+    try:
+        tmp_file = tempfile.NamedTemporaryFile(
+            mode="w", suffix=".py", prefix="sandbox_", dir=None,  # None → system /tmp
+            delete=False
+        )
+        tmp_file.write(code_string)
+        tmp_file.close()
+
+        result = execute_sandboxed_code(
+            script_path=tmp_file.name,
+            timeout_sec=limits["timeout_sec"],
+            max_mem_mb=limits["max_mem_mb"],
+        )
+
+        if result["success"]:
+            return ToolResult(ok=True, output=result["output"])
+        else:
+            return ToolResult(ok=False, output=result["error"])
+
+    except Exception as e:
+        return ToolResult(ok=False, output=f"[Sandbox Tool Error] {e}")
+    finally:
+        if tmp_file and os.path.exists(tmp_file.name):
+            os.unlink(tmp_file.name)
+
+
+code_exec_tool = Tool(
+    "execute_code",
+    execute_code_tool_fn,
+    "Execute a Python script inside an isolated, resource-limited sandbox. "
+    "Pass the FULL Python source code as a single string argument. "
+    "Use ONLY when the task requires running or testing code. "
+    "The sandbox enforces strict CPU and memory limits."
+)
+
+
 def build_llm_call(persona: str = "default", db_path: str = DB_PATH):
     def llm_call(agent_prompt: str, has_image: bool = False, image_path: str = None) -> str:
         task_type, reason = classify_task(agent_prompt, has_image=has_image)
         current_map = get_model_map()
 
+        # BYOM: Use get_best_model() for graceful local fallback
+        model_name, warning = get_best_model(task_type, model_map=current_map)
+
+        if warning:
+            print(f"[BYOM Warning] {warning}")
+
+        if not model_name:
+            return ('{"action": "finish", "result": "ERROR: No local models found. '
+                    'Run `ollama pull <model>` to install one.", '
+                    '"reasoning": "System error", "confidence": "high"}')
+
         if task_type == "vision":
-            model_name = current_map.get("vision")
             if not model_name:
                 return '{"action": "finish", "result": "ERROR: No vision-capable model installed. Please run `ollama pull llava:7b`.", "reasoning": "System error", "confidence": "high"}'
             if not image_path:
@@ -87,10 +143,6 @@ def build_llm_call(persona: str = "default", db_path: str = DB_PATH):
                 format="json",
             )
             return response.get("response", "")
-
-        model_name = current_map.get(task_type) or current_map.get("general")
-        if not model_name:
-            return '{"action": "finish", "result": "ERROR: No models found.", "reasoning": "System error", "confidence": "high"}'
 
         response = ollama.generate(
             model=model_name,
@@ -111,7 +163,12 @@ def run_agent(prompt, project_id="workbench", image_path=None, persona="default"
         return {"error": "Ollama package is not installed."}
 
     dynamic_db_path = f"memory/{project_id}.db"
-    tools = [kb_tool, docgen_tool]
+    project_kb_tool = Tool(
+        "search_knowledge_base",
+        lambda query: kb_search_tool(query, db_path=dynamic_db_path),
+        kb_tool.description,
+    )
+    tools = [project_kb_tool, docgen_tool, code_exec_tool]
 
     llm_call = build_llm_call(persona=persona, db_path=dynamic_db_path)
     agent = Agent(llm_call=llm_call, tools=tools, max_steps=6)          # <-- agent created FIRST
@@ -123,6 +180,11 @@ def run_agent(prompt, project_id="workbench", image_path=None, persona="default"
     result["routing_reason"] = routing_reason
 
     add_chat_memory(prompt, str(result["result"]), persona=persona, db_path=dynamic_db_path)
+    try:
+        check_and_consolidate(project_id=project_id)
+    except Exception as e:
+        print(f"[MemoryManager Warning] Consolidation check error: {e}")
+
     _write_audit_log(prompt, result)
 
     result["sources"] = _last_sources

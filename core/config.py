@@ -15,6 +15,8 @@ DEFAULTS = {
     "persona": "default",
     "last_consolidated": 0,  # unix timestamp, used later by memory consolidation
     "model_map":{},
+    "sandbox_timeout_sec": 5,    # wall-clock limit for sandboxed code execution
+    "sandbox_max_mem_mb": 256,   # virtual memory cap (MB) for sandboxed subprocesses
 }
 
 # Rough context-window ladder. Bigger num_ctx = more RAM for the KV cache.
@@ -127,3 +129,12 @@ def get_background_job_percent():
     a live session. Fixed low default per the plan (~10%), floor of 5.
     """
     return max(5, min(10, load_config()["mem_percent"] // 2))
+
+
+def get_sandbox_limits():
+    """Returns the configured sandbox resource limits as a dict."""
+    cfg = load_config()
+    return {
+        "timeout_sec": cfg["sandbox_timeout_sec"],
+        "max_mem_mb": cfg["sandbox_max_mem_mb"],
+    }
