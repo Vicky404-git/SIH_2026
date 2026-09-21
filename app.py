@@ -43,8 +43,12 @@ with st.sidebar:
     st.checkbox("Docker Sandbox (Code)", value=False, disabled=True)  # flip once v1.x lands
 
 # ── Chat state ───────────────────────────────────────────────────────
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-# right after the sidebar block, before "for message in st.session_state.messages:"
+if "consumed_doc_id" not in st.session_state:
+    st.session_state.consumed_doc_id = None
+
 if not st.session_state.messages:
     st.markdown("**Try asking:**")
     cols = st.columns(2)
@@ -53,11 +57,9 @@ if not st.session_state.messages:
         "Generate a technical report from the last analysis",
     ]
     for col, p in zip(cols, prompts):
-        if col.button(p):
+        if col.button(p, key=f"btn_{p}"):
             st.session_state.pending_prompt = p
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+            st.rerun()
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -80,9 +82,6 @@ uploaded_doc = st.sidebar.file_uploader(
     key="doc_uploader",
 )
 
-if "consumed_doc_id" not in st.session_state:
-    st.session_state.consumed_doc_id = None
-
 if uploaded_doc is not None and uploaded_doc.file_id != st.session_state.consumed_doc_id:
     content = uploaded_doc.read().decode("utf-8", errors="ignore")
     chunk_count = ingest_text(content, source_name=uploaded_doc.name, source_type="doc")
@@ -98,7 +97,10 @@ def confidence_badge_html(confidence: str) -> str:
     }.get(conf, "confidence-medium")
     return f'<span class="confidence-badge {css_class}">{conf.upper()}</span>'
 
-if prompt := st.chat_input("Ask a question or request a task..."):
+chat_input = st.chat_input("Ask a question or request a task...")
+prompt = chat_input or st.session_state.pop("pending_prompt", None)
+
+if prompt:
     st.chat_message("user").markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 

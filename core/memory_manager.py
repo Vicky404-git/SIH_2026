@@ -3,6 +3,7 @@ import sqlite3
 import ollama
 from pathlib import Path
 from .rag import get_db, _store_chunk, clear_session
+from .model_registry import get_best_model
 
 THRESHOLD = 50  # Trigger consolidation after 50 chat messages
 
@@ -31,7 +32,9 @@ def check_and_consolidate(project_id: str = "workbench"):
             f"{chat_text}"
         )
         
-        response = ollama.generate(model="llama3.2:3b", prompt=prompt)
+        best_model, _ = get_best_model("reasoning")
+        model_to_use = best_model or "llama3.2:3b"
+        response = ollama.generate(model=model_to_use, prompt=prompt)
         summary = response.get("response", "").strip()
 
         if not summary:

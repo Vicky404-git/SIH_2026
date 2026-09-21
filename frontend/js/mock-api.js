@@ -5,7 +5,7 @@
 (function (global) {
   "use strict";
 
-  var API_BASE = global.SOVEREIGN_API_BASE || "";
+  var API_BASE = global.SOVEREIGN_API_BASE || "http://localhost:8000";
   var USE_MOCK = global.SOVEREIGN_USE_MOCK !== false;
   var LATENCY = 420;
 

@@ -15,6 +15,7 @@ from .sandbox import execute_sandboxed_code
 
 from .config import load_config
 from .model_registry import discover_models, get_best_model
+from .memory_manager import check_and_consolidate
 
 def get_model_map():
     config = load_config()
@@ -162,7 +163,12 @@ def run_agent(prompt, project_id="workbench", image_path=None, persona="default"
         return {"error": "Ollama package is not installed."}
 
     dynamic_db_path = f"memory/{project_id}.db"
-    tools = [kb_tool, docgen_tool, code_exec_tool]
+    project_kb_tool = Tool(
+        "search_knowledge_base",
+        lambda query: kb_search_tool(query, db_path=dynamic_db_path),
+        kb_tool.description,
+    )
+    tools = [project_kb_tool, docgen_tool, code_exec_tool]
 
     llm_call = build_llm_call(persona=persona, db_path=dynamic_db_path)
     agent = Agent(llm_call=llm_call, tools=tools, max_steps=6)          # <-- agent created FIRST
@@ -174,6 +180,11 @@ def run_agent(prompt, project_id="workbench", image_path=None, persona="default"
     result["routing_reason"] = routing_reason
 
     add_chat_memory(prompt, str(result["result"]), persona=persona, db_path=dynamic_db_path)
+    try:
+        check_and_consolidate(project_id=project_id)
+    except Exception as e:
+        print(f"[MemoryManager Warning] Consolidation check error: {e}")
+
     _write_audit_log(prompt, result)
 
     result["sources"] = _last_sources

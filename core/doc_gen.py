@@ -1,8 +1,8 @@
 # doc_gen_tool.py
 import subprocess, tempfile
-from core.agent import Tool, ToolResult
-from core.config import get_sandbox_limits
-from core.sandbox import _apply_os_limits
+from .agent import Tool, ToolResult
+from .config import get_sandbox_limits
+from .sandbox import _apply_os_limits
 
 def generate_docx(markdown_content: str) -> ToolResult:
     limits = get_sandbox_limits()
