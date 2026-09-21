@@ -179,6 +179,34 @@ def build_index(directory=".", db_path=DB_PATH, on_progress=None):
     finally:
         db.close()
 
+        
+
+def ingest_text(content: str, source_name: str, source_type: str = "doc", db_path: str = DB_PATH) -> int:
+    """Chunks and stores a single piece of already-extracted text (uploaded
+    .txt/.py/.md/.json/etc — no OCR needed, it's already readable text).
+    Unlike build_index(), this doesn't wipe existing chunks first — it's
+    additive, meant for one-off uploads during a session.
+    Returns the number of chunks stored.
+    """
+    db = get_db(db_path)
+    try:
+        chunks = [c.strip() for c in content.split('\n\n') if len(c.strip()) > 40]
+        if not chunks:
+            # fallback for content with no blank-line breaks (common in code files)
+            chunks = [content[i:i+800] for i in range(0, len(content), 800) if content[i:i+800].strip()]
+
+        stored = 0
+        for chunk in chunks:
+            vec = get_embedding(chunk)
+            if vec:
+                _store_chunk(db, source_name, chunk, source_type, vec)
+                stored += 1
+
+        db.commit()
+        return stored
+    finally:
+        db.close()
+
 
 # ==========================================
 # SEARCH

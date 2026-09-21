@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ "feat/rag-foundation", "master", "main" ]
+    branches: [ "feat/streamlit-frontend", "feat/rag-foundation", "master", "main" ]
   pull_request:
-    branches: [ "feat/rag-foundation", "master", "main" ]
+    branches: [ "feat/streamlit-frontend", "feat/rag-foundation", "master", "main" ]
 
 jobs:
   test:
@@ -28,4 +28,4 @@ jobs:
       run: uv sync --all-extras
 
     - name: Run test suite
-      run: uv run python test.py
+      run: uv run python debug.py

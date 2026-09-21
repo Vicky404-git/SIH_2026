@@ -23,7 +23,7 @@ class Agent:
         self.tools = {t.name: t for t in tools}
         self.max_steps = max_steps
 
-    def run(self, task: str, has_image: bool = False) -> dict:
+    def run(self, task: str, has_image: bool = False, image_path: str = None) -> dict:
 
         trace = Trace()
         history = []
@@ -31,7 +31,7 @@ class Agent:
         
         for step in range(self.max_steps):
             prompt = self._build_prompt(task, history)
-            raw = self.llm_call(prompt, has_image = has_image)
+            raw = self.llm_call(prompt, has_image = has_image, image_path = image_path)
             
             print(f"\n[DEBUG] Step {step} Raw LLM Output:\n{raw}\n{'-'*40}")
 
@@ -97,11 +97,14 @@ class Agent:
             {hist}
 
             CRITICAL RULES:
-            1. You are a sovereign agent. Think step-by-step. You must respond ONLY in valid JSON.
-            2. If no relevant manuals are found, you MUST explicitly say so — but you must
-            STILL provide a complete, substantive answer from general knowledge. Admitting
-            the gap is not a substitute for answering the question.
-            
+                1. You are a sovereign agent. Think step-by-step. You must respond ONLY in valid JSON.
+                2. If no relevant manuals are found, you MUST explicitly say so — but you must
+                STILL provide a complete, substantive answer from general knowledge. Admitting
+                the gap is not a substitute for answering the question.
+                3. Example of a correct tool call for generating a document:
+                {{"action": "call_tool", "tool": "generate_docx", "arg": "# Title\\n\\nParagraph text here."}}
+                The "arg" must always be a single plain markdown STRING, never a JSON object or array.            
+
             Choose one of these two formats:
                 
                 Option 1 (Use a tool):

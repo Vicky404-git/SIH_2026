@@ -5,7 +5,7 @@ except ImportError:
 
 CAPABILITY_HINTS = {
     "coding": ["coder", "code", "starcoder", "codellama"],
-    "vision": ["llava", "vision", "moondream", "bakllava"],
+    "vision": ["llava", "vision", "moondream", "bakllava","vl","qwen-vl"],
     "reasoning": ["llama", "qwen", "mistral", "phi"],
 }
 
