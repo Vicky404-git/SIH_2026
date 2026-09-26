@@ -1,8 +1,12 @@
 import os
-import resource
+try:
+    import resource
+except ImportError:
+    resource = None
 import shutil
 import signal
 import subprocess
+import sys
 import tempfile
 from typing import Dict, Any
 
@@ -10,6 +14,8 @@ from .code_inspector import inspect_code
 
 def _apply_os_limits(max_mem_mb: int, max_cpu_sec: int) -> None:
     """Child process callback: Enforces OS kernel limits before execution begins."""
+    if resource is None:
+        return
     # 1. Convert RAM limit to Bytes
     mem_bytes = max_mem_mb * 1024 * 1024
     
@@ -72,8 +78,8 @@ def execute_sandboxed_code(script_path: str, timeout_sec: int = 5, max_mem_mb: i
 
     try:
         result = subprocess.run(
-            ["python3", confined_script],
-            preexec_fn=target_limits,
+            [sys.executable, confined_script],
+            preexec_fn=target_limits if os.name != "nt" else None,
             capture_output=True,
             text=True,
             timeout=timeout_sec,

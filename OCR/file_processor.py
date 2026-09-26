@@ -109,30 +109,10 @@ def process_file(file_path):
             f"Unsupported file type: {extension}"
         )
 
-if __name__ == "__main__":
-
-    file_path = input(
-        "Enter the complete path of your file: "
-    )
-
-    try:
-
-        text = process_file(file_path)
-
-        print("\n===== FILE PROCESSED SUCCESSFULLY =====\n")
-
-        print(text[:5000])
-
-    except Exception as e:
-
-        print("\nERROR:")
-        print(e)
-
-from ollama import chat
-
-
 def ask_question(document_text, question):
-    prompt = f"""
+    try:
+        from ollama import chat
+        prompt = f"""
 You are a document question-answering assistant.
 
 Answer the user's question ONLY using the document content provided below.
@@ -148,31 +128,31 @@ QUESTION:
 
 Give a clear and simple answer.
 """
+        response = chat(
+            model="qwen3-vl:4b",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return response.message.content
+    except Exception as e:
+        return f"Error querying model: {e}"
 
-    response = chat(
-        model="qwen3-vl:4b",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
 
-    return response.message.content
+if __name__ == "__main__":
+    file_path = input("Enter the complete path of your file: ")
+    try:
+        text = process_file(file_path)
+        print("\n===== FILE PROCESSED SUCCESSFULLY =====\n")
+        print(text[:5000])
 
-"""text = extract_text(file_path)"""
+        print("\nFile loaded successfully!")
+        print("=" * 60)
 
-print("\nFile loaded successfully!")
-print("=" * 60)
-
-while True:
-    question = input("\nAsk a question about this file (or type 'exit'): ")
-
-    if question.lower() == "exit":
-        break
-
-    answer = ask_question(text, question)
-
-    print("\n===== ANSWER =====")
-    print(answer)
+        while True:
+            question = input("\nAsk a question about this file (or type 'exit'): ")
+            if question.lower() == "exit":
+                break
+            answer = ask_question(text, question)
+            print("\n===== ANSWER =====")
+            print(answer)
+    except Exception as e:
+        print("\nERROR:", e)

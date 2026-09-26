@@ -17,4 +17,5 @@ wheels/
 # Virtual environments
 .venv
 memory/
+data/
 feat/rag-foundation

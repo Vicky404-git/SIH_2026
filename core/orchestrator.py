@@ -140,7 +140,6 @@ def build_llm_call(persona: str = "default", db_path: str = DB_PATH):
                 prompt=agent_prompt,
                 images=[image_path],
                 options=get_ollama_options(),
-                format="json",
             )
             return response.get("response", "")
 
@@ -148,7 +147,6 @@ def build_llm_call(persona: str = "default", db_path: str = DB_PATH):
             model=model_name,
             prompt=agent_prompt,
             options=get_ollama_options(),
-            format="json",
         )
         return response.get("response", "")
 

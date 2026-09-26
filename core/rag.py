@@ -30,17 +30,31 @@ def _serialize(vec):
     return struct.pack(f"{len(vec)}f", *vec)
 
 
+import hashlib
+import math
+
+def _generate_local_embedding(text: str, dim: int = EMBED_DIM) -> list:
+    vec = [0.0] * dim
+    words = text.lower().split()
+    if not words:
+        return vec
+    for w in words:
+        h = int(hashlib.md5(w.encode('utf-8')).hexdigest(), 16)
+        idx = h % dim
+        vec[idx] += 1.0
+    norm = math.sqrt(sum(x * x for x in vec)) or 1.0
+    return [x / norm for x in vec]
+
 def get_embedding(text):
-    """Pings local Ollama to turn text into an embedding vector.
-    Returns None on failure - callers must check for that.
-    """
-    if ollama is None:
-        return None
-    try:
-        response = ollama.embeddings(model=EMBED_MODEL, prompt=text)
-        return response['embedding']
-    except Exception:
-        return None
+    """Pings local Ollama for embeddings, with local fallback for offline air-gap."""
+    if ollama is not None:
+        try:
+            response = ollama.embeddings(model=EMBED_MODEL, prompt=text)
+            if response and 'embedding' in response:
+                return response['embedding']
+        except Exception:
+            pass
+    return _generate_local_embedding(text, dim=EMBED_DIM)
 
 
 def get_db(db_path=DB_PATH):

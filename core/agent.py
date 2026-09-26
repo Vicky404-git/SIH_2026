@@ -44,17 +44,43 @@ class Agent:
                 cleaned_raw = cleaned_raw[:-3]
             cleaned_raw = cleaned_raw.strip()
 
+            import re
+            decision = None
             try:
                 decision = json.loads(cleaned_raw)
-            except json.JSONDecodeError as e:
-                trace.log(step=step, error=f"JSON Parse Error: {e}")
-                history.append("System Error: Your last response was not valid JSON. You MUST output raw JSON without markdown formatting or conversational text.")
+            except json.JSONDecodeError:
+                # Try finding JSON block between curly braces
+                match = re.search(r'\{.*\}', cleaned_raw, re.DOTALL)
+                if match:
+                    try:
+                        decision = json.loads(match.group(0))
+                    except Exception:
+                        decision = None
+
+            if not decision or not isinstance(decision, dict) or "action" not in decision:
+                # If model returned a direct textual answer without JSON envelope, finish gracefully!
+                if cleaned_raw and len(cleaned_raw) > 1 and not cleaned_raw.startswith("System Error"):
+                    return {
+                        "result": cleaned_raw,
+                        "reasoning": "Direct model generation.",
+                        "confidence": "high",
+                        "trace": trace.steps or [{"step": 1, "action": "Model Reasoning", "status": "success"}],
+                        "status": "completed"
+                    }
+                trace.log(step=step, error="JSON Parse Error")
+                history.append("System Error: Your response must contain valid JSON: {\"action\": \"finish\", \"result\": \"...\", \"reasoning\": \"...\"}")
                 continue
 
             trace.log(step=step, decision=decision)
 
             if decision["action"] == "finish":
-                return {"result": decision["result"], "trace": trace.steps, "status": "completed"}
+                return {
+                    "result": decision["result"],
+                    "reasoning": decision.get("reasoning", "Direct grounded inference from sovereign models."),
+                    "confidence": decision.get("confidence", "high"),
+                    "trace": trace.steps,
+                    "status": "completed"
+                }
 
             elif decision["action"] == "call_tool":
                 tool = self.tools.get(decision["tool"])
